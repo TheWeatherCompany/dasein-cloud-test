@@ -50,6 +50,10 @@ public class NetworkResources {
     static private final Random random = new Random();
 
     static public final String TEST_CIDR = "209.98.98.98/32";
+    static public final String TEST_HC_PATH = "/index.htm";
+    static public final LoadBalancerHealthCheck.HCProtocol TEST_HC_PROTOCOL = LoadBalancerHealthCheck.HCProtocol.HTTP;
+    static public final String TEST_HC_HOST = "localhost";
+    static public final int TEST_HC_PORT = 8080;
 
     private CloudProvider provider;
 
@@ -669,7 +673,6 @@ public class NetworkResources {
         } catch( Throwable ignore ) {
             // ignore
         }
-        provider.close();
         return count;
     }
 
@@ -1038,7 +1041,7 @@ public class NetworkResources {
         return null;
     }
 
-    public @Nullable String getTestLoadBalancerId(@Nonnull String label, boolean provisionIfNull) {
+    public @Nullable String getTestLoadBalancerId(@Nonnull String label, @Nonnull String lbNamePrefix, boolean provisionIfNull, boolean withHealthCheck) {
         if( label.equalsIgnoreCase(DaseinTestManager.STATELESS) ) {
             for( Map.Entry<String, String> entry : testLBs.entrySet() ) {
                 if( !entry.getKey().startsWith(DaseinTestManager.REMOVED) ) {
@@ -1061,7 +1064,7 @@ public class NetworkResources {
 
             if( services != null ) {
                 try {
-                    return provisionLoadBalancer(label, null, false);
+                    return provisionLoadBalancer(label, lbNamePrefix, false);
                 } catch( Throwable ignore ) {
                     // ignore
                 }
@@ -1225,8 +1228,11 @@ public class NetworkResources {
         }
         return null;
     }
-
     public @Nullable String getTestSubnetId(@Nonnull String label, boolean provisionIfNull, @Nullable String vlanId, @Nullable String preferredDataCenterId) {
+    	return getTestSubnetId(label, "dsnlb", provisionIfNull, vlanId, preferredDataCenterId);
+    }
+    
+    public @Nullable String getTestSubnetId(@Nonnull String label, @Nonnull String lbName, boolean provisionIfNull, @Nullable String vlanId, @Nullable String preferredDataCenterId) {
         String id;
         if( label.equals(DaseinTestManager.STATELESS) ) {
             for( Map.Entry<String, String> entry : testSubnets.entrySet() ) {
@@ -1485,11 +1491,12 @@ public class NetworkResources {
         } else {
             map = ( version.equals(IPVersion.IPV4) ? testIps4VLAN : testIps6VLAN );
         }
-        String id;
+        String id = null;
 
         if( vlanId == null ) {
             id = support.request(version);
-        } else {
+        }
+        else {
             if( support.getCapabilities().identifyVlanForVlanIPRequirement().equals(Requirement.NONE) ) {
                 id = support.requestForVLAN(version);
             } else {
@@ -1577,11 +1584,11 @@ public class NetworkResources {
     }
 
     public @Nonnull String provisionLoadBalancer(@Nonnull String label, @Nullable String namePrefix, boolean internal) throws CloudException, InternalException {
-        return provisionLoadBalancer(label, namePrefix, internal, false);
+        return provisionLoadBalancer(label, namePrefix, internal, false, false);
     }
 
     public @Nonnull String provisionLoadBalancer(@Nonnull String label, @Nullable String namePrefix,
-                                 boolean internal, boolean withHttps) throws CloudException, InternalException {
+                                 boolean internal, boolean withHttps, boolean withHealthCheck) throws CloudException, InternalException {
         NetworkServices services = provider.getNetworkServices();
 
         if( services == null ) {
@@ -1634,8 +1641,8 @@ public class NetworkResources {
         }
 
         if( support.getCapabilities().identifyListenersOnCreateRequirement().equals(Requirement.REQUIRED) ) {
-            final int publicPort = 1000 + random.nextInt(10000);
-            final int privatePort = 1000 + random.nextInt(10000);
+            final int publicPort = 1024 + random.nextInt(10000);
+            final int privatePort = 1024 + random.nextInt(10000);
             if ( !withHttps ) {
                 options.havingListeners(LbListener.getInstance(publicPort, privatePort));
             } else {
@@ -1755,6 +1762,11 @@ public class NetworkResources {
         }
         if( internal && testSubnetId != null ) {
             options.withProviderSubnetIds(testSubnetId);
+        }
+
+        if( withHealthCheck ) {
+            options.withHealthCheckOptions(HealthCheckOptions.getInstance(
+                    null, null, null, TEST_HC_HOST, TEST_HC_PROTOCOL, TEST_HC_PORT, TEST_HC_PATH, 60, 100, 3, 10));
         }
 
         String id = options.build(provider);

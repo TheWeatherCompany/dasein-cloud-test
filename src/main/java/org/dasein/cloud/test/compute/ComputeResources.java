@@ -219,7 +219,6 @@ public class ComputeResources {
                 }
             }
         }
-        provider.close();
         return count;
     }
 
@@ -381,8 +380,12 @@ public class ComputeResources {
         }
         return null;
     }
-
+    
     public @Nullable String getTestVmId(@Nonnull String label, @Nullable VmState desiredState, boolean provisionIfNull, @Nullable String preferredDataCenterId) {
+    	return getTestVmId(label, "dsnvm", desiredState, provisionIfNull, preferredDataCenterId);
+    }
+
+    public @Nullable String getTestVmId(@Nonnull String label, @Nonnull String vmName, @Nullable VmState desiredState, boolean provisionIfNull, @Nullable String preferredDataCenterId) {
         if( label.equals(DaseinTestManager.STATELESS) ) {
             for( Map.Entry<String,String> entry : testVMs.entrySet() ) {
                 if( !entry.getKey().startsWith(DaseinTestManager.REMOVED) ) {
@@ -419,7 +422,7 @@ public class ComputeResources {
                     VirtualMachine vm = (id == null ? null : support.getVirtualMachine(id));
 
                     if( (vm == null || VmState.TERMINATED.equals(vm.getCurrentState())) && provisionIfNull ) {
-                        id = provisionVM(support, label, "Dasein Test " + label, provider.getContext().getCloud().getUserName() + "dsnvm", preferredDataCenterId);
+                        id = provisionVM(support, label, "Dasein Test " + label, vmName, preferredDataCenterId);
                         vm = support.getVirtualMachine(id);
                     }
                     if( vm != null && desiredState != null ) {
@@ -624,6 +627,7 @@ public class ComputeResources {
 
     public void init() {
         ComputeServices computeServices = provider.getComputeServices();
+        String dataCenterId = System.getProperty("test.dataCenter");
 
         if( computeServices != null ) {
             HashMap<Architecture,VirtualMachineProduct> productMap = new HashMap<Architecture, VirtualMachineProduct>();
@@ -635,7 +639,7 @@ public class ComputeResources {
                         VirtualMachineProduct defaultProduct = null;
 
                         try {
-                            for( VirtualMachineProduct product : vmSupport.listProducts(architecture) ) {
+                            for( VirtualMachineProduct product : vmSupport.listProducts(architecture, dataCenterId) ) {
                                 if( defaultProduct == null ) {
                                     defaultProduct = product;
                                 }

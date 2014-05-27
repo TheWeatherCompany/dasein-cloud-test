@@ -77,6 +77,11 @@
       <version>4.9</version>
       <scope>compile</scope>
     </dependency>
+      <dependency>
+          <groupId>org.hamcrest</groupId>
+          <artifactId>hamcrest-all</artifactId>
+          <version>1.3</version>
+      </dependency>
     <dependency>
         <groupId>log4j</groupId>
         <artifactId>log4j</artifactId>
@@ -188,18 +193,18 @@
     </plugins>
   </build>  
   
-	<distributionManagement>
-	    <repository>
-	        <id>twcgrid</id>
-	        <name>twcgrid-releases</name>
-	        <url>http://twcgrid.artifactoryonline.com/twcgrid/libs-releases-local</url>
-	    </repository>
-	    <snapshotRepository>
-	        <id>twcgrid</id>
-	        <name>twcgrid-snapshots</name>
-	        <url>http://twcgrid.artifactoryonline.com/twcgrid/libs-snapshots-local</url>
-	    </snapshotRepository>
-	</distributionManagement>
+  <distributionManagement>
+      <repository>
+          <id>twcgrid</id>
+          <name>twcgrid-releases</name>
+          <url>http://twcgrid.artifactoryonline.com/twcgrid/libs-releases-local</url>
+      </repository>
+      <snapshotRepository>
+          <id>twcgrid</id>
+          <name>twcgrid-snapshots</name>
+          <url>http://twcgrid.artifactoryonline.com/twcgrid/libs-snapshots-local</url>
+      </snapshotRepository>
+  </distributionManagement>
   
   <developers>
     <developer>
