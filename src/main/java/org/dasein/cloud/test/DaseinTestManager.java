@@ -77,6 +77,11 @@ public class DaseinTestManager {
     }
 
     static public @Nonnull CloudProvider constructProvider(@Nullable String overrideAccount, @Nullable String overrideShared, @Nullable String overrideSecret) {
+        return constructProvider(overrideAccount, overrideShared, overrideSecret, null);
+    }
+
+    static public @Nonnull CloudProvider constructProvider(@Nullable String overrideAccount, @Nullable String overrideShared,
+                                                           @Nullable String overrideSecret, @Nullable String overrideRegionId) {
         String cname = System.getProperty("providerClass");
         CloudProvider provider = null;
 
@@ -111,7 +116,7 @@ public class DaseinTestManager {
             if( prop != null ) {
                 providerName = prop;
             }
-            prop = System.getProperty("regionId");
+            prop = overrideRegionId == null ? System.getProperty("regionId") : overrideRegionId;
             if( prop != null ) {
                 regionId = prop;
             }
