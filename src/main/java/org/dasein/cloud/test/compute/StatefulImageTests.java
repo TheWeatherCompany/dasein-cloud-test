@@ -1100,32 +1100,23 @@ public class StatefulImageTests {
             targetRegionId = "us-west-1";
         }
 
-        CloudProvider providerForTargetRegion = null;
-        MachineImageSupport support = null;
+        CloudProvider targetProvider = null;
+        MachineImageSupport targetSupport = null;
         try {
-            providerForTargetRegion = DaseinTestManager.constructProvider(null, null, null, targetRegionId);
-            ComputeServices services = providerForTargetRegion.getComputeServices();
-            if (services != null) {
-                support = services.getImageSupport();
-                if (support != null) {
+            targetProvider = DaseinTestManager.constructProvider(null, null, null, targetRegionId);
+            if (targetProvider.getComputeServices() != null && tm.getProvider().getComputeServices() != null) {
+                targetSupport = targetProvider.getComputeServices().getImageSupport();
+                MachineImageSupport sourceSupport = tm.getProvider().getComputeServices().getImageSupport();
+                if (targetSupport != null && sourceSupport != null) {
 
-                    final String name = "test-copied-image-name";
-                    final String description = "test-copied-image-description";
-                    MachineImage copiedImage = support.copyImage(ImageCopyOptions.getInstance(
-                            sourceRegionId, testImageId, name, description));
+                    copiedImageId = sourceSupport.copyImage(ImageCopyOptions.getInstance(
+                            targetRegionId, testImageId, "test-copied-image-name", "test-copied-image-description"));
 
-                    assertNotNull(copiedImage);
-
-                    tm.out(String.format("Copied machine image [%s] to region [%s] with new ID [%s], " +
-                                    "state [%s], name [%s], description [%s]",
-                            testImageId, targetRegionId, copiedImage.getProviderMachineImageId(),
-                            copiedImage.getCurrentState(), copiedImage.getName(), copiedImage.getDescription()));
-
-                    copiedImageId = copiedImage.getProviderMachineImageId();
                     assertNotNull(copiedImageId);
-                    assertEquals(name, copiedImage.getName());
-                    assertEquals(description, copiedImage.getDescription());
-                    assertEquals(targetRegionId, copiedImage.getProviderRegionId());
+
+                    MachineImage copiedImage = targetSupport.getImage(copiedImageId);
+                    assertNotNull(copiedImage);
+                    // Name and Description may take time to be set, so they are not tested here
                 }
                 else {
                     tm.ok("No image support in this cloud");
@@ -1137,16 +1128,16 @@ public class StatefulImageTests {
 
         }
         finally {
-            if (support != null && copiedImageId != null) {
+            if (targetSupport != null && copiedImageId != null) {
                 try {
-                    support.remove(copiedImageId);
+                    targetSupport.remove(copiedImageId);
                 } catch (Exception e) {
                     tm.warn(String.format("Could not remove copied machine image [%s] in region [%s] due to error: %s",
                             copiedImageId, targetRegionId, e));
                 }
             }
-            if (providerForTargetRegion != null) {
-                providerForTargetRegion.close();
+            if (targetProvider != null) {
+                targetProvider.close();
             }
         }
     }
