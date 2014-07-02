@@ -21,10 +21,12 @@ package org.dasein.cloud.test.compute;
 
 import org.dasein.cloud.AsynchronousTask;
 import org.dasein.cloud.CloudException;
+import org.dasein.cloud.CloudProvider;
 import org.dasein.cloud.InternalException;
 import org.dasein.cloud.OperationNotSupportedException;
 import org.dasein.cloud.Requirement;
 import org.dasein.cloud.compute.ComputeServices;
+import org.dasein.cloud.compute.ImageCopyOptions;
 import org.dasein.cloud.compute.ImageCreateOptions;
 import org.dasein.cloud.compute.MachineImage;
 import org.dasein.cloud.compute.MachineImageFormat;
@@ -48,6 +50,7 @@ import org.junit.rules.TestName;
 import java.util.Random;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeNotNull;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -1080,6 +1083,62 @@ public class StatefulImageTests {
         }
         else {
             tm.ok("No compute services in this cloud");
+        }
+    }
+
+    @Test
+    public void copyImage() throws CloudException, InternalException {
+        assumeTrue(!tm.isTestSkipped());
+        assumeNotNull(testImageId);
+        assertNotNull(tm.getProvider().getContext());
+
+        final String sourceRegionId = tm.getProvider().getContext().getRegionId();
+        assertNotNull(sourceRegionId);
+        String copiedImageId = null;
+        String targetRegionId = System.getProperty("regionId2");
+        if( targetRegionId == null ) {
+            targetRegionId = "us-west-1";
+        }
+
+        CloudProvider targetProvider = null;
+        MachineImageSupport targetSupport = null;
+        try {
+            targetProvider = DaseinTestManager.constructProvider(null, null, null, targetRegionId);
+            if (targetProvider.getComputeServices() != null && tm.getProvider().getComputeServices() != null) {
+                targetSupport = targetProvider.getComputeServices().getImageSupport();
+                MachineImageSupport sourceSupport = tm.getProvider().getComputeServices().getImageSupport();
+                if (targetSupport != null && sourceSupport != null) {
+
+                    copiedImageId = sourceSupport.copyImage(ImageCopyOptions.getInstance(
+                            targetRegionId, testImageId, "test-copied-image-name", "test-copied-image-description"));
+
+                    assertNotNull(copiedImageId);
+
+                    MachineImage copiedImage = targetSupport.getImage(copiedImageId);
+                    assertNotNull(copiedImage);
+                    // Name and Description may take time to be set, so they are not tested here
+                }
+                else {
+                    tm.ok("No image support in this cloud");
+                }
+            }
+            else {
+                tm.ok("No compute services in this cloud");
+            }
+
+        }
+        finally {
+            if (targetSupport != null && copiedImageId != null) {
+                try {
+                    targetSupport.remove(copiedImageId);
+                } catch (Exception e) {
+                    tm.warn(String.format("Could not remove copied machine image [%s] in region [%s] due to error: %s",
+                            copiedImageId, targetRegionId, e));
+                }
+            }
+            if (targetProvider != null) {
+                targetProvider.close();
+            }
         }
     }
 }
