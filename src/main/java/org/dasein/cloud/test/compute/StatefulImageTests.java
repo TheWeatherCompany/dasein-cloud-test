@@ -84,7 +84,6 @@ public class StatefulImageTests {
     private String testShareAccount;
     private String testImageId;
     private String testVMId;
-	private String testDataCenterId;
 
     public StatefulImageTests() { }
 
@@ -92,21 +91,10 @@ public class StatefulImageTests {
     public void before() {
         tm.begin(name.getMethodName());
         assumeTrue(!tm.isTestSkipped());
-        try {
-        	testDataCenterId = System.getProperty("test.dataCenter");
-        } catch( Throwable ignore ) {
-            // ignore
-        }
-        try {
-	        if (testDataCenterId == null)
-	        	testDataCenterId = tm.getProvider().getDataCenterServices().listDataCenters(tm.getContext().getRegionId()).iterator().next().getProviderDataCenterId();
-	    } catch (Throwable ignore) {
-			// ignore
-		}
         if( !name.getMethodName().startsWith("capture") ) {
             testImageId = tm.getTestImageId(DaseinTestManager.STATEFUL, true);
         }
-        testVMId = tm.getTestVMId(DaseinTestManager.STATEFUL, VmState.RUNNING, true, testDataCenterId);
+        testVMId = tm.getTestVMId(DaseinTestManager.STATEFUL, VmState.RUNNING, true, null);
         testShareAccount = System.getProperty("shareAccount");
         if( testImageId != null ) {
             if( name.getMethodName().equals("addPrivateShare") || name.getMethodName().equals("addPublicShare") ||

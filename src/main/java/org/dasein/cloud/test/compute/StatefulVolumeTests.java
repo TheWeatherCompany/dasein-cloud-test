@@ -49,6 +49,7 @@ import org.junit.rules.TestName;
 import java.util.UUID;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeTrue;
 
 /**
@@ -81,7 +82,6 @@ public class StatefulVolumeTests {
     private String testVLANId;
     private String testVMId;
     private String testVolumeId;
-	private String testDataCenterId;
 
     public StatefulVolumeTests() { }
 
@@ -89,22 +89,10 @@ public class StatefulVolumeTests {
     public void before() {
         tm.begin(name.getMethodName());
         assumeTrue(!tm.isTestSkipped());
-        try {
-			testDataCenterId = System.getProperty("test.dataCenter");
-		} catch (Throwable ignore) {
-			// ignore
-		}
-        try {
-	        if (testDataCenterId == null)
-	    		testDataCenterId = tm.getProvider().getDataCenterServices().listDataCenters(tm.getContext().getRegionId()).iterator().next().getProviderDataCenterId();
-	    } catch (Throwable ignore) {
-			// ignore
-		}
-
         if( name.getMethodName().equals("createNFSVolume") ) {
-            testVLANId = tm.getTestVLANId(DaseinTestManager.STATELESS, false, testDataCenterId);
+            testVLANId = tm.getTestVLANId(DaseinTestManager.STATELESS, false, null);
             if( testVLANId == null ) {
-                testVLANId = tm.getTestVLANId(DaseinTestManager.STATEFUL, true, testDataCenterId);
+                testVLANId = tm.getTestVLANId(DaseinTestManager.STATEFUL, true, null);
             }
         }
         else if( name.getMethodName().equals("createFromSnapshot") ) {
@@ -114,7 +102,7 @@ public class StatefulVolumeTests {
             }
         }
         else if( name.getMethodName().equals("removeVolume") ) {
-            testVolumeId = tm.getTestVolumeId(DaseinTestManager.REMOVED, true, null, testDataCenterId);
+            testVolumeId = tm.getTestVolumeId(DaseinTestManager.REMOVED, true, null, null);
         }
         else if( name.getMethodName().equals("filterVolumes") ) {
             ComputeServices services = tm.getProvider().getComputeServices();
@@ -125,7 +113,7 @@ public class StatefulVolumeTests {
                 if( support != null ) {
                     try {
                         //noinspection ConstantConditions
-                        testVolumeId = DaseinTestManager.getComputeResources().provisionVolume(support, "filter", "dsnfilter", null, testDataCenterId);
+                        testVolumeId = DaseinTestManager.getComputeResources().provisionVolume(support, "filter", "dsnfilter", null, null);
                     }
                     catch( Throwable t ) {
                         tm.warn("Failed to provisionKeypair VM for filter test: " + t.getMessage());
@@ -134,7 +122,7 @@ public class StatefulVolumeTests {
             }
         }
         else if( name.getMethodName().equals("attach") ) {
-            testVMId = tm.getTestVMId(DaseinTestManager.STATEFUL, VmState.RUNNING, true, testDataCenterId);
+            testVMId = tm.getTestVMId(DaseinTestManager.STATEFUL, VmState.RUNNING, true, null);
             String dc = null;
 
             if( testVMId != null ) {
@@ -168,7 +156,7 @@ public class StatefulVolumeTests {
             }
         }
         else if( name.getMethodName().equals("detach") ) {
-            testVMId = tm.getTestVMId(DaseinTestManager.STATEFUL, VmState.RUNNING, true, testDataCenterId);
+            testVMId = tm.getTestVMId(DaseinTestManager.STATEFUL, VmState.RUNNING, true, null);
             String dc = null;
 
             if( testVMId != null ) {
@@ -227,7 +215,7 @@ public class StatefulVolumeTests {
             }
         }
         else if( name.getMethodName().equals("attachToBogusVM") ) {
-            testVolumeId = tm.getTestVolumeId(DaseinTestManager.STATEFUL, true, null, testDataCenterId);
+            testVolumeId = tm.getTestVolumeId(DaseinTestManager.STATEFUL, true, null, null);
 
             if( testVolumeId != null ) {
                 try {
@@ -246,7 +234,7 @@ public class StatefulVolumeTests {
             }
         }
         else if( name.getMethodName().equals("detachUnattachedVolume") ) {
-            testVolumeId = tm.getTestVolumeId(DaseinTestManager.STATEFUL, true, null, testDataCenterId);
+            testVolumeId = tm.getTestVolumeId(DaseinTestManager.STATEFUL, true, null, null);
 
             if( testVolumeId != null ) {
                 try {
@@ -309,7 +297,6 @@ public class StatefulVolumeTests {
             testSnapshotId = null;
             testVolumeId = null;
             testVLANId = null;
-            testDataCenterId = null;
         }
         finally {
             tm.end();
@@ -410,8 +397,6 @@ public class StatefulVolumeTests {
                 if( options == null ) {
                     options = VolumeCreateOptions.getInstance(support.getCapabilities().getMinimumVolumeSize(), "dsnvolprv" + (System.currentTimeMillis()%10000), "Volume Provisioning Test");
                 }
-                if (testDataCenterId != null)
-                    options.setDataCenterId(testDataCenterId);
 
                 if( supported ) {
                     provisionedVolume = options.build(tm.getProvider());
@@ -483,8 +468,7 @@ public class StatefulVolumeTests {
                     if( options == null ) {
                         options = VolumeCreateOptions.getNetworkInstance(testVLANId, support.getCapabilities().getMinimumVolumeSize(), "dsnvolprv" + (System.currentTimeMillis()%10000), "Volume Provisioning Test");
                     }
-                    if (testDataCenterId != null)
-                        options.setDataCenterId(testDataCenterId);
+
                     if( supported ) {
                         provisionedVolume = options.build(tm.getProvider());
 
@@ -564,9 +548,7 @@ public class StatefulVolumeTests {
                     options = VolumeCreateOptions.getInstanceForSnapshot(productId, testSnapshotId, size, "dsnvolprv" + (System.currentTimeMillis()%10000), "Volume Provisioning Test", 0);
                 }
                 if( options == null ) {
-                    options = VolumeCreateOptions.getInstanceForSnapshot(testSnapshotId, new Storage<Gigabyte>(10, Storage.GIGABYTE), "dsnvolprv" + (System.currentTimeMillis()%10000), "Volume Provisioning Test");
-                    if (testDataCenterId != null)
-                        options.setDataCenterId(testDataCenterId);
+                    options = VolumeCreateOptions.getInstanceForSnapshot(testSnapshotId, support.getCapabilities().getMinimumVolumeSize(), "dsnvolprv" + (System.currentTimeMillis()%10000), "Volume Provisioning Test");
                 }
 
                 if( support.isSubscribed() && supported ) {
@@ -838,6 +820,7 @@ public class StatefulVolumeTests {
             tm.ok("No compute services in this cloud");
         }
     }
+
 
     @Test
     public void removeVolume() throws CloudException, InternalException {
