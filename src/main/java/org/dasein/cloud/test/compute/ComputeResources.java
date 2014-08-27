@@ -639,7 +639,10 @@ public class ComputeResources {
                         VirtualMachineProduct defaultProduct = null;
 
                         try {
-                            for( VirtualMachineProduct product : vmSupport.listProducts(architecture, dataCenterId) ) {
+                           // temporary fix for compile errors from dasein upstream -- ckelner
+                          VirtualMachineProductFilterOptions vmpfo = VirtualMachineProductFilterOptions.getInstance();
+                          vmpfo.withDatacenterId( dataCenterId );
+                            for( VirtualMachineProduct product : vmSupport.listProducts(vmpfo, architecture) ) {
                                 if( defaultProduct == null ) {
                                     defaultProduct = product;
                                 }
